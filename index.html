@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>سجل مشورة الأطفال - شامل</title>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+</head>
+<body dir="rtl" style="font-family: Arial; padding: 30px">
+
+  <h2>📄 سجل مشورة الأطفال - شامل</h2>
+
+  <label>📤 رفع ملف Excel (اختياري):</label>
+  <input type="file" id="uploadExcel" accept=".xlsx, .xls"><br /><br />
+
+  <form id="momForm">
+    <label>اسم الأم:</label><br />
+    <input type="text" id="name" required><br /><br />
+
+    <label>الرقم القومي:</label><br />
+    <input type="text" id="nid" required><br /><br />
+
+    <label>رقم الموبايل:</label><br />
+    <input type="text" id="phone" required><br /><br />
+
+    <label>اسم الطفل (اختياري):</label><br />
+    <input type="text" id="childName"><br /><br />
+
+    <label>سن الطفل (اختياري):</label><br />
+    <input type="number" id="childAge" min="0"><br /><br />
+
+    <button type="submit">➕ إضافة</button>
+  </form>
+
+  <br />
+  <button id="downloadBtn" style="display:none;">📥 تحميل Excel</button>
+  <button id="clearBtn" style="display:none; background-color: crimson; color: white;">🗑️ مسح كل البيانات</button>
+
+  <h3>📝 البيانات الحالية:</h3>
+  <ul id="dataList"></ul>
+
+  <script>
+    let dataList = [];
+
+    const STORAGE_KEY = "momDataFull";
+    const listElement = document.getElementById("dataList");
+    const form = document.getElementById("momForm");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const clearBtn = document.getElementById("clearBtn");
+
+    window.onload = () => {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        dataList = JSON.parse(saved);
+        updateUI();
+      }
+    };
+
+    document.getElementById("uploadExcel").addEventListener("change", function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        if (sheetData.length > 0 && sheetData[0][0] === "اسم الأم") {
+          sheetData.shift(); // remove headers
+        }
+
+        for (const row of sheetData) {
+          if (row.length >= 3) {
+            dataList.push(row);
+          }
+        }
+
+        saveToStorage();
+        updateUI();
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const name = document.getElementById("name").value.trim();
+      const nid = document.getElementById("nid").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const childName = document.getElementById("childName").value.trim();
+      const childAge = document.getElementById("childAge").value.trim();
+      const date = new Date().toLocaleDateString("ar-EG");
+
+      if (!name || !nid || !phone) {
+        alert("من فضلك أدخل البيانات الأساسية");
+        return;
+      }
+
+      const row = [name, nid, phone, childName || "", childAge || "", date];
+      dataList.push(row);
+      saveToStorage();
+      updateUI();
+      form.reset();
+    });
+
+    downloadBtn.addEventListener("click", function () {
+      const headers = ["اسم الأم", "الرقم القومي", "رقم الموبايل", "اسم الطفل", "سن الطفل", "تاريخ الإدخال"];
+      const ws_data = [headers, ...dataList];
+
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "سجل مشورة الأطفال");
+
+      const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([wbout], { type: "application/octet-stream" });
+
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "سجل_مشورة.xlsx";
+      a.click();
+    });
+
+    clearBtn.addEventListener("click", () => {
+      if (confirm("هل أنت متأكد أنك تريد مسح كل البيانات؟")) {
+        dataList = [];
+        localStorage.removeItem(STORAGE_KEY);
+        updateUI();
+      }
+    });
+
+    function updateUI() {
+      listElement.innerHTML = "";
+      dataList.forEach((row) => {
+        const li = document.createElement("li");
+        li.textContent = `👩‍🦱 ${row[0]} | 🪪 ${row[1]} | 📱 ${row[2]} | 👶 ${row[3] || "-"} | 🎂 ${row[4] || "-"} | 📅 ${row[5]}`;
+        listElement.appendChild(li);
+      });
+
+      downloadBtn.style.display = dataList.length ? "inline-block" : "none";
+      clearBtn.style.display = dataList.length ? "inline-block" : "none";
+    }
+
+    function saveToStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dataList));
+    }
+  </script>
+
+</body>
+</html>
