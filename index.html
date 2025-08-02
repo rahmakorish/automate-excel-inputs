@@ -26,7 +26,16 @@
     <input type="text" id="childName"><br /><br />
 
     <label>سن الطفل (اختياري):</label><br />
-    <input type="number" id="childAge" min="0"><br /><br />
+    <input type="text" id="childAge" min="0"><br /><br />
+
+    <label>عدد الأطفال (اختياري):</label><br />
+    <input type="number" id="numChildren" min="0"><br /><br />
+
+    <label>المدة بين آخر حمل (اختياري):</label><br />
+    <input type="text" id="gap"><br /><br />
+
+    <label>تاريخ ميلاد الطفل (اختياري):</label><br />
+    <input type="date" id="birthDate"><br /><br />
 
     <button type="submit">➕ إضافة</button>
   </form>
@@ -41,7 +50,7 @@
   <script>
     let dataList = [];
 
-    const STORAGE_KEY = "momDataFull";
+    const STORAGE_KEY = "momDataExtended";
     const listElement = document.getElementById("dataList");
     const form = document.getElementById("momForm");
     const downloadBtn = document.getElementById("downloadBtn");
@@ -90,6 +99,9 @@
       const phone = document.getElementById("phone").value.trim();
       const childName = document.getElementById("childName").value.trim();
       const childAge = document.getElementById("childAge").value.trim();
+      const numChildren = document.getElementById("numChildren").value.trim();
+      const gap = document.getElementById("gap").value.trim();
+      const birthDate = document.getElementById("birthDate").value;
       const date = new Date().toLocaleDateString("ar-EG");
 
       if (!name || !nid || !phone) {
@@ -97,7 +109,17 @@
         return;
       }
 
-      const row = [name, nid, phone, childName || "", childAge || "", date];
+      const row = [
+        name,
+        nid,
+        phone,
+        childName || "",
+        childAge || "",
+        numChildren || "",
+        gap || "",
+        birthDate || "",
+        date
+      ];
       dataList.push(row);
       saveToStorage();
       updateUI();
@@ -105,12 +127,15 @@
     });
 
     downloadBtn.addEventListener("click", function () {
-      const headers = ["اسم الأم", "الرقم القومي", "رقم الموبايل", "اسم الطفل", "سن الطفل", "تاريخ الإدخال"];
+      const headers = [
+        "اسم الأم", "الرقم القومي", "رقم الموبايل", "اسم الطفل", "سن الطفل",
+        "عدد الأطفال", "المدة بين آخر حمل", "تاريخ ميلاد الطفل", "تاريخ الإدخال"
+      ];
       const ws_data = [headers, ...dataList];
 
       const ws = XLSX.utils.aoa_to_sheet(ws_data);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "سجل مشورة الأطفال");
+      XLSX.utils.book_append_sheet(wb, ws, "سجل مشورة");
 
       const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
       const blob = new Blob([wbout], { type: "application/octet-stream" });
@@ -133,7 +158,8 @@
       listElement.innerHTML = "";
       dataList.forEach((row) => {
         const li = document.createElement("li");
-        li.textContent = `👩‍🦱 ${row[0]} | 🪪 ${row[1]} | 📱 ${row[2]} | 👶 ${row[3] || "-"} | 🎂 ${row[4] || "-"} | 📅 ${row[5]}`;
+        li.textContent =
+          `👩‍🦱 ${row[0]} | 🪪 ${row[1]} | 📱 ${row[2]} | 👶 ${row[3] || "-"} | 🎂 ${row[4] || "-"} | 👨‍👩‍👧‍👦 ${row[5] || "-"} | ⏱ ${row[6] || "-"} | 📅 ميلاد: ${row[7] || "-"} | إدخال: ${row[8]}`;
         listElement.appendChild(li);
       });
 
